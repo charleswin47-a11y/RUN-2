@@ -2,7 +2,7 @@
   "name": "a-grande-familia-boss-mode",
   "version": "1.0.0",
   "description": "Modo Chefão independente para A Grande Família Game",
-  "main": "src/main.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",

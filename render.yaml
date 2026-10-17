@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: a-grande-familia-boss-mode
+    env: node
+    plan: free
+    buildCommand: yarn install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production

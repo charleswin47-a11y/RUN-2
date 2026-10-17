@@ -304,7 +304,7 @@ export const server = http.createServer((req, res) => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
-  server.listen(PORT, () => {
-    console.log(`[A Grande Família - Modo Chefão] Servidor ativo em: http://localhost:${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[A Grande Família - Modo Chefão] Servidor ativo em: http://0.0.0.0:${PORT}`);
   });
 }
