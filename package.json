@@ -1,0 +1,20 @@
+{
+  "name": "a-grande-familia-boss-mode",
+  "version": "1.0.0",
+  "description": "Modo Chefão independente para A Grande Família Game",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "keywords": [
+    "game",
+    "canvas",
+    "boss-fight",
+    "retro",
+    "pixel-art"
+  ],
+  "author": "Equipe A Grande Família",
+  "license": "MIT"
+}

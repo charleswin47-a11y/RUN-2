@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>A Grande Família Game — Modo Chefão</title>
+  <meta name="description" content="Modo Chefão oficial: Enfrente O Síndico do Parque Columbia nesta batalha de arena 2D retrô com os 15 personagens de A Grande Família Game.">
+  <link rel="stylesheet" href="src/styles/game.css">
+</head>
+<body>
+
+  <main id="game-container" role="application" aria-label="Arena de Combate do Modo Chefão">
+    <!-- Canvas de Renderização 16:9 Nativo (960x540) -->
+    <canvas id="game-canvas" width="960" height="540"></canvas>
+
+    <!-- Overlay de Interface do Usuário (HUD) -->
+    <div id="ui-overlay" aria-live="polite">
+      <!-- Top HUD: Vidas, Cronômetro e Barra do Chefão -->
+      <header class="hud-top">
+        <div class="hud-player-block">
+          <div class="hud-char-title">
+            <span id="hud-char-name">Di5</span>
+          </div>
+          <div class="hud-lives-row" id="hud-lives-container" aria-label="Vidas restantes">
+            <span class="hud-life-icon">❤️</span>
+            <span class="hud-life-icon">❤️</span>
+            <span class="hud-life-icon">❤️</span>
+          </div>
+        </div>
+
+        <div class="hud-center-timer" aria-label="Cronômetro da Batalha">
+          <span class="hud-timer-label">TEMPO RESTANTE</span>
+          <span class="hud-timer-digits" id="hud-timer">03:00</span>
+        </div>
+
+        <div class="hud-boss-block">
+          <div class="hud-boss-meta">
+            <span class="hud-boss-name" id="hud-boss-name">O Síndico</span>
+            <span class="hud-boss-phase" id="hud-boss-phase">Fase 1</span>
+          </div>
+          <div class="hud-boss-hp-track" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="1000">
+            <div class="hud-boss-hp-fill" id="hud-boss-hp-fill" style="width: 100%;"></div>
+            <span class="hud-boss-hp-text" id="hud-boss-hp-text">1000 / 1000</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Bottom HUD: Habilidade e Pontuação -->
+      <footer class="hud-bottom">
+        <div class="hud-ability-card">
+          <div class="hud-ability-icon-wrap" id="hud-ability-icon">
+            <span style="font-size: 20px;">⚡</span>
+            <div class="hud-ability-cooldown-overlay" id="hud-cooldown-overlay" style="display: none;">0.0</div>
+          </div>
+          <div class="hud-ability-info">
+            <span class="hud-ability-name" id="hud-ability-name">Fumaça Blindada</span>
+            <span class="hud-ability-prompt">Pressione <span class="hud-ability-key">[X]</span> ou <span class="hud-ability-key">[Shift]</span></span>
+          </div>
+        </div>
+
+        <div class="hud-score-display">
+          <span class="hud-score-label">PONTUAÇÃO</span>
+          <span class="hud-score-val" id="hud-score">0</span>
+        </div>
+      </footer>
+
+      <!-- Telas Modais Sobrepostas -->
+
+      <!-- 1. TELA INICIAL / TÍTULO ARCADE -->
+      <section id="screen-title" class="modal-screen active">
+        <div class="title-hero-content">
+          <div class="arcade-badge">EDIÇÃO DE COMBATE ARCADE 16-BIT</div>
+          <h1 class="title-logo-main">A GRANDE FAMÍLIA</h1>
+          <h2 class="title-logo-sub">— MODO CHEFÃO —</h2>
+          <p class="title-tagline">Batalhe sozinho ou em equipe de até 3 jogadores contra os Chefões do Parque Columbia</p>
+
+          <!-- Banner de combatentes pixel art na tela inicial -->
+          <div class="title-fighters-showcase">
+            <canvas id="title-fighters-canvas" width="640" height="120"></canvas>
+          </div>
+
+          <!-- Menu de Opções de Modo em Grade 2x2 Balanceada -->
+          <div class="title-menu-actions">
+            <button id="btn-mode-solo" class="btn-arcade btn-glow btn-hero">🎮 JOGAR SOLO [ENTER]</button>
+            <button id="btn-mode-coop" class="btn-arcade btn-primary btn-hero">👥 CO-OP ONLINE (3 JOGADORES)</button>
+            <button id="btn-mode-campaign" class="btn-arcade btn-secondary">🏆 SELEÇÃO DE CHEFÕES</button>
+            <button id="btn-mode-controls" class="btn-arcade">⚙️ CONTROLES & OPÇÕES [C]</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. NOVA SELEÇÃO DE PERSONAGENS (TELA ESTRELA DO JOGO) -->
+      <section id="screen-char-select" class="modal-screen">
+        <header class="screen-nav-header">
+          <button id="btn-char-select-back" class="btn-arcade btn-small">◀ VOLTAR</button>
+          <div class="screen-nav-title">
+            <span class="nav-title-main">SELEÇÃO DE COMBATENTE</span>
+            <span class="nav-title-sub" id="char-select-mode-tag">MODO SOLO</span>
+          </div>
+          <button id="btn-char-select-confirm" class="btn-arcade btn-glow">ESCOLHER & AVANÇAR ▶</button>
+        </header>
+
+        <div class="char-select-layout">
+          <!-- Coluna Esquerda: Palco do Personagem em Destaque (GRANDE) -->
+          <div class="fighter-hero-stage">
+            <div class="fighter-spotlight-podium">
+              <canvas id="fighter-hero-canvas" width="240" height="260"></canvas>
+              <!-- Controles de Teste de Animação do Lutador -->
+              <div class="hero-preview-controls">
+                <button type="button" id="btn-preview-idle" class="preview-mode-btn active" data-mode="idle">▶ PARADO</button>
+                <button type="button" id="btn-preview-attack" class="preview-mode-btn" data-mode="attack">⚔️ GOLPE</button>
+                <button type="button" id="btn-preview-ability" class="preview-mode-btn" data-mode="ability">⚡ HABILIDADE</button>
+              </div>
+            </div>
+
+            <div class="fighter-identity-block">
+              <div class="fighter-hero-name" id="hero-char-name">DI5</div>
+              <div class="fighter-hero-style" id="hero-char-style">DEFENSOR PESADO • CONTRA-ATAQUE</div>
+            </div>
+
+            <!-- Cluster de Atributos Oficiais Reais do Combatente -->
+            <div class="fighter-stats-cluster">
+              <div class="fighter-stat-row">
+                <span class="stat-name">VELOCIDADE</span>
+                <div class="stat-pips" id="hero-stat-speed">
+                  <span class="pip active"></span><span class="pip active"></span><span class="pip active"></span><span class="pip"></span><span class="pip"></span>
+                </div>
+              </div>
+              <div class="fighter-stat-row">
+                <span class="stat-name">SALTO</span>
+                <div class="stat-pips" id="hero-stat-jump">
+                  <span class="pip active"></span><span class="pip active"></span><span class="pip active"></span><span class="pip active"></span><span class="pip"></span>
+                </div>
+              </div>
+              <div class="fighter-stat-row">
+                <span class="stat-name">RECARGA</span>
+                <span class="stat-badge" id="hero-stat-cooldown">18s</span>
+              </div>
+            </div>
+
+            <!-- Card da Habilidade Especial -->
+            <div class="fighter-ability-showcase">
+              <div class="ability-card-top">
+                <span class="ability-card-icon">⚡</span>
+                <span class="ability-card-name" id="hero-ability-name">Fumaça Blindada</span>
+                <span class="ability-card-cooldown" id="hero-ability-cooldown">18s</span>
+              </div>
+              <p class="ability-card-desc" id="hero-ability-desc">
+                Escudo de fumaça roxo-azulado que absorve um golpe letal e prepara um contra-ataque devastador com soco pesado.
+              </p>
+            </div>
+
+            <!-- Golpe Básico -->
+            <div class="fighter-basic-attack-block">
+              <span class="basic-tag">GOLPE BÁSICO [Z / J]:</span>
+              <span class="basic-name" id="hero-basic-name">Soco Pesado de Impacto</span>
+            </div>
+          </div>
+
+          <!-- Coluna Direita: Roster dos 16 Personagens com Cartões Maiores -->
+          <div class="char-roster-shelf">
+            <div class="roster-shelf-header">
+              <span>ELENCO COMPLETO (16 COMBATENTES)</span>
+              <span class="roster-hint">Selecione para ver a prévia</span>
+            </div>
+            <div class="char-roster-grid" id="char-roster-grid">
+              <!-- Injetado dinamicamente com 16 cartões amplos -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. SELEÇÃO DE CAMPANHA / CHEFÕES -->
+      <section id="screen-campaign-select" class="modal-screen">
+        <header class="screen-nav-header">
+          <button id="btn-campaign-back" class="btn-arcade btn-small">◀ VOLTAR</button>
+          <div class="screen-nav-title">
+            <span class="nav-title-main">CAMPANHA DE CHEFÕES</span>
+            <span class="nav-title-sub">3 DESAFIOS PROGRESSIVOS</span>
+          </div>
+          <button id="btn-campaign-confirm" class="btn-arcade btn-glow">ENFRENTAR CHEFÃO ▶</button>
+        </header>
+
+        <div class="campaign-cards-container" id="campaign-cards-container">
+          <!-- Injetado dinamicamente com os 3 chefões da campanha -->
+        </div>
+      </section>
+
+      <!-- 4. LOBBY ONLINE CO-OP (ATÉ 3 JOGADORES) -->
+      <section id="screen-lobby" class="modal-screen">
+        <header class="screen-nav-header">
+          <button id="btn-lobby-back-menu" class="btn-arcade btn-small">◀ MENU PRINCIPAL</button>
+          <div class="screen-nav-title">
+            <span class="nav-title-main">LOBBY COOPERATIVO ONLINE</span>
+            <span class="nav-title-sub" id="lobby-room-code-tag">CÓDIGO: ----</span>
+          </div>
+          <button id="btn-lobby-copy-code-top" class="btn-arcade btn-secondary btn-small" style="display: none;">📋 COPIAR CONVITE</button>
+        </header>
+
+        <!-- Painel de Conexão (quando ainda não está na sala) -->
+        <div id="lobby-auth-panel" class="lobby-auth-box">
+          <h3 class="auth-title">CRIE OU ENTRE EM UMA SALA</h3>
+          <p class="auth-desc">Reúna até 3 jogadores para enfrentar a campanha juntos na mesma arena.</p>
+
+          <div class="lobby-form-row">
+            <div class="input-labeled">
+              <label for="lobby-nick-input">SEU NICKNAME:</label>
+              <input type="text" id="lobby-nick-input" maxlength="14" value="Guerreiro" class="arcade-input">
+            </div>
+            <button id="btn-create-lobby-room" class="btn-arcade btn-glow">CRIAR NOVA SALA</button>
+          </div>
+
+          <div class="lobby-divider"><span>OU ENTRE COM CÓDIGO</span></div>
+
+          <div class="lobby-form-row">
+            <input type="text" id="lobby-join-code-input" maxlength="4" placeholder="CÓDIGO (4 LETRAS)" class="arcade-input code-input">
+            <button id="btn-join-lobby-room" class="btn-arcade">ENTRAR NA SALA</button>
+          </div>
+
+          <div id="lobby-status-error" class="lobby-error-alert" style="display: none;"></div>
+        </div>
+
+        <!-- Painel da Sala Aberta com 3 Slots de Jogadores Reais Lado a Lado -->
+        <div id="lobby-room-live" class="lobby-room-live" style="display: none;">
+          <div class="lobby-room-bar">
+            <div class="room-pill">
+              <span>SALA:</span>
+              <strong id="lobby-code-val">----</strong>
+            </div>
+            <div class="room-pill">
+              <span>CHEFÃO:</span>
+              <strong id="lobby-boss-val">O SÍNDICO (FASE 1)</strong>
+            </div>
+            <div class="room-pill">
+              <span>CAPACIDADE:</span>
+              <strong>MÁX 3 JOGADORES</strong>
+            </div>
+          </div>
+
+          <!-- Grade dos 3 Jogadores lado a lado -->
+          <div class="lobby-trio-grid" id="lobby-trio-grid">
+            <!-- 3 Slots grandes renderizados dinamicamente -->
+          </div>
+
+          <div class="lobby-footer-actions">
+            <button id="btn-lobby-change-char" class="btn-arcade btn-secondary">TROCAR PERSONAGEM</button>
+            <button id="btn-lobby-toggle-ready" class="btn-arcade btn-glow">ESTOU PRONTO</button>
+            <button id="btn-lobby-start-battle" class="btn-arcade btn-primary btn-hero" style="display: none;">INICIAR BATALHA [ANFITRIÃO]</button>
+            <button id="btn-lobby-leave" class="btn-arcade danger">SAIR DA SALA</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. TELA DE PREPARAÇÃO / VERSUS (FACEOFF) -->
+      <section id="screen-versus" class="modal-screen">
+        <div class="versus-stage-wrapper">
+          <!-- Lado Esquerdo: Combatente(s) Escolhido(s) -->
+          <div class="versus-fighters-side" id="versus-fighters-side">
+            <canvas id="versus-player-canvas" width="180" height="220"></canvas>
+            <h2 id="versus-player-name">DI5</h2>
+            <div class="versus-subtag" id="versus-player-subtag">FUMAÇA BLINDADA</div>
+          </div>
+
+          <!-- Centro: VS Neon Emblemático -->
+          <div class="versus-center-emblem">
+            <div class="vs-neon-symbol">VS</div>
+            <div class="vs-stage-name" id="versus-stage-name">PARQUE COLUMBIA</div>
+          </div>
+
+          <!-- Lado Direito: O Chefão -->
+          <div class="versus-boss-side" id="versus-boss-side">
+            <canvas id="versus-boss-canvas" width="180" height="220"></canvas>
+            <h2 id="versus-boss-name">O SÍNDICO</h2>
+            <div class="versus-subtag danger" id="versus-boss-subtag">AMEAÇA NÍVEL 1</div>
+          </div>
+        </div>
+
+        <div class="versus-countdown-wrap">
+          <button id="btn-start-arena-now" class="btn-arcade btn-glow btn-hero">ENTRAR NA ARENA! [ENTER]</button>
+        </div>
+      </section>
+
+      <!-- Modal de Controles e Opções -->
+      <section id="controls-screen" class="modal-screen">
+        <h1 class="neon-title">CONTROLES & OPÇÕES</h1>
+        <h2 class="neon-subtitle">Guia de Combate e Ajustes de Jogo</h2>
+        <div style="max-width: 620px; background: rgba(18, 10, 36, 0.92); border: 1px solid var(--border-neon); border-radius: 8px; padding: 18px 24px; margin-bottom: 16px; font-size: 13px; line-height: 1.8;">
+          <p>🎮 <strong>Mover:</strong> <span class="hud-ability-key">A / D</span> ou <span class="hud-ability-key">Setas ◀ ▶</span></p>
+          <p>⬆️ <strong>Pular:</strong> <span class="hud-ability-key">Espaço</span>, <span class="hud-ability-key">W</span> ou <span class="hud-ability-key">Seta ▲</span></p>
+          <p>⬇️ <strong>Abaixar:</strong> <span class="hud-ability-key">S</span> ou <span class="hud-ability-key">Seta ▼</span> (reduz área de colisão)</p>
+          <p>⚔️ <strong>Ataque Básico:</strong> <span class="hud-ability-key">Z</span> ou <span class="hud-ability-key">J</span> (golpe único de cada lutador)</p>
+          <p>⚡ <strong>Habilidade Especial:</strong> <span class="hud-ability-key">X</span>, <span class="hud-ability-key">K</span> ou <span class="hud-ability-key">Shift</span></p>
+          <p>⏸️ <strong>Pausar:</strong> <span class="hud-ability-key">ESC</span> ou <span class="hud-ability-key">P</span></p>
+          <p>🟩 <strong>Hitboxes Debug:</strong> <span class="hud-ability-key">H</span> (mostra caixas de colisão)</p>
+          
+          <hr style="border: none; border-top: 1px solid rgba(0, 243, 255, 0.2); margin: 12px 0;">
+          
+          <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 8px;">
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="opt-screen-shake" checked style="cursor: pointer; accent-color: var(--cyan-neon);">
+              <span>Tremor de Tela nos Impactos (Screen Shake)</span>
+            </label>
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="opt-show-hitboxes" style="cursor: pointer; accent-color: var(--cyan-neon);">
+              <span>Visualizador de Hitboxes / Hurtboxes [H]</span>
+            </label>
+          </div>
+        </div>
+        <button id="btn-close-controls" class="btn-arcade">VOLTAR</button>
+      </section>
+
+      <!-- Modal de Pausa -->
+      <section id="pause-screen" class="modal-screen">
+        <h1>JOGO PAUSADO</h1>
+        <h2>O síndico deu uma trégua temporária</h2>
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+          <button id="btn-resume-game" class="btn-arcade">CONTINUAR</button>
+          <button id="btn-restart-game" class="btn-arcade danger">REINICIAR</button>
+        </div>
+      </section>
+
+      <!-- Modal de Resultados (Vitória / Derrota) -->
+      <section id="results-screen" class="modal-screen">
+        <h1 id="results-title">VITÓRIA!</h1>
+        <h2 id="results-subtitle">O condomínio foi libertado</h2>
+
+        <div class="results-stats-panel" id="results-stats-panel">
+          <div class="stat-item"><span class="stat-label">Personagem:</span><span class="stat-value" id="res-char">Di5</span></div>
+          <div class="stat-item"><span class="stat-label">Resultado:</span><span class="stat-value" id="res-status">Vitória</span></div>
+          <div class="stat-item"><span class="stat-label">Dano Causado:</span><span class="stat-value" id="res-damage-dealt">1000</span></div>
+          <div class="stat-item"><span class="stat-label">Dano Recebido:</span><span class="stat-value" id="res-damage-taken">1</span></div>
+          <div class="stat-item"><span class="stat-label">Golpes Esquivados:</span><span class="stat-value" id="res-dodges">8</span></div>
+          <div class="stat-item"><span class="stat-label">Tempo de Batalha:</span><span class="stat-value" id="res-time">01:42</span></div>
+          <div class="stat-item"><span class="stat-label">Vidas Restantes:</span><span class="stat-value" id="res-lives">2 / 3</span></div>
+          <div class="stat-item"><span class="stat-label">Pontuação Final:</span><span class="stat-value" id="res-score" style="color: var(--yellow-neon);">18,450</span></div>
+        </div>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+          <button id="btn-advance-stage" class="btn-arcade btn-glow" style="display: none;">PRÓXIMA FASE [ENTER]</button>
+          <button id="btn-play-again" class="btn-arcade">TENTAR NOVAMENTE</button>
+          <button id="btn-back-menu" class="btn-arcade danger">MUDAR PERSONAGEM</button>
+        </div>
+      </section>
+
+      <!-- Controles Virtuais Touch (Mobile) -->
+      <div id="mobile-controls" aria-hidden="true">
+        <div class="dpad-cluster">
+          <button class="touch-btn" id="touch-left" aria-label="Mover para esquerda">◀</button>
+          <button class="touch-btn" id="touch-right" aria-label="Mover para direita">▶</button>
+        </div>
+        <div class="action-cluster">
+          <button class="touch-btn" id="touch-jump" aria-label="Pular">▲</button>
+          <button class="touch-btn" id="touch-attack" aria-label="Ataque Básico">⚔️</button>
+          <button class="touch-btn ability-btn" id="touch-ability" aria-label="Habilidade Especial">⚡</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
