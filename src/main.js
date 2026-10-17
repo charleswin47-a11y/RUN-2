@@ -58,5 +58,7 @@ if (typeof window !== 'undefined') {
     window.__BOSS_MODE_GAME__ = game;
   });
 } else {
-  console.log('[src/main.js] Este arquivo é o ponto de entrada do cliente web. Para iniciar o servidor HTTP, execute: node server.js');
+  // Executado em ambiente Node.js (ex: Render configurado com Start Command 'node src/main.js')
+  console.log('[A Grande Família - Modo Chefão] Inicializando servidor HTTP automaticamente...');
+  import('../server.js');
 }
